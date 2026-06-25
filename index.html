@@ -109,6 +109,18 @@ select:focus,input:focus{border-color:var(--red);box-shadow:0 0 0 4px rgba(228,0
   color:#0066cc !important;
 }
 
+
+.customRebateWrap{
+  margin-top:8px;
+}
+#customRebate{
+  color:#e4002b !important;
+  font-weight:1000 !important;
+}
+.customRebateWrap .moneyWrap span{
+  color:#e4002b !important;
+}
+
 </style>
 </head>
 <body>
@@ -163,6 +175,9 @@ select:focus,input:focus{border-color:var(--red);box-shadow:0 0 0 4px rgba(228,0
       <div class="field">
         <label>Discount / Rebate</label>
         <select id="discountSelect"><option value="0">RM 0</option><option value="custom">Custom</option></select>
+        <div class="customRebateWrap" id="customRebateWrap" style="display:none;">
+          <div class="moneyWrap"><span>RM</span><input id="customRebate" type="number" value="0" min="0"></div>
+        </div>
       </div>
       <div class="field">
         <label>Accessories</label>
@@ -206,6 +221,8 @@ const salesPhone = "60173939788";
 const els = {
   car: document.getElementById("car"),
   discountSelect: document.getElementById("discountSelect"),
+  customRebate: document.getElementById("customRebate"),
+  customRebateWrap: document.getElementById("customRebateWrap"),
   insurance: document.getElementById("insurance"),
   ncd: document.getElementById("ncd"),
   accessories: document.getElementById("accessories"),
@@ -240,13 +257,32 @@ function selectedCar(){
 
 function setInsuranceFromCar(){ els.insurance.value = selectedCar().insurance; }
 function formatRebateOption(value){ return "RM " + Number(value || 0).toLocaleString("en-MY"); }
+
 function refreshDiscountDropdown(){
   const rebate = selectedCar().rebate || 0;
   const wasCustom = els.discountSelect.value === "custom";
+  const customValue = els.customRebate ? numEl(els.customRebate) : 0;
+
   els.discountSelect.innerHTML = `<option value="${rebate}">${formatRebateOption(rebate)}</option><option value="custom">Custom</option>`;
-  els.discountSelect.value = wasCustom ? "custom" : String(rebate);
+
+  if(wasCustom){
+    els.discountSelect.value = "custom";
+    if(els.customRebateWrap) els.customRebateWrap.style.display = "block";
+    if(els.customRebate) els.customRebate.value = customValue;
+  } else {
+    els.discountSelect.value = String(rebate);
+    if(els.customRebateWrap) els.customRebateWrap.style.display = "none";
+  }
 }
-function getDiscount(){ return els.discountSelect.value === "custom" ? 0 : Math.max(Number(els.discountSelect.value)||0,0); }
+
+function getDiscount(){
+  if(els.discountSelect.value === "custom"){
+    if(els.customRebateWrap) els.customRebateWrap.style.display = "block";
+    return Math.max(els.customRebate ? numEl(els.customRebate) : 0, 0);
+  }
+  if(els.customRebateWrap) els.customRebateWrap.style.display = "none";
+  return Math.max(Number(els.discountSelect.value)||0,0);
+}
 function getMethod(){ return document.querySelector('input[name="method"]:checked').value; }
 function methodName(){ return getMethod() === "eir" ? "EIR" : "Flat Rate"; }
 function updateMethodUI(){
@@ -358,6 +394,15 @@ document.querySelectorAll("input,select").forEach(el => {
     el.addEventListener("change", render);
   }
 });
+els.discountSelect.addEventListener("change", () => {
+  getDiscount();
+  render();
+});
+if(els.customRebate){
+  els.customRebate.addEventListener("input", render);
+  els.customRebate.addEventListener("change", render);
+}
+
 document.querySelectorAll('input[name="method"]').forEach(el => el.addEventListener("change", render));
 
 setInsuranceFromCar();
